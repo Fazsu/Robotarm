@@ -1,0 +1,10 @@
+G:\Kandi\Robotic Arduino GUI\Arduino GUI\Arduino GUI\bin\Debug\Arduino GUI.exe.config
+G:\Kandi\Robotic Arduino GUI\Arduino GUI\Arduino GUI\bin\Debug\Arduino GUI.exe
+G:\Kandi\Robotic Arduino GUI\Arduino GUI\Arduino GUI\bin\Debug\Arduino GUI.pdb
+G:\Kandi\Robotic Arduino GUI\Arduino GUI\Arduino GUI\obj\Debug\Arduino GUI.csproj.AssemblyReference.cache
+G:\Kandi\Robotic Arduino GUI\Arduino GUI\Arduino GUI\obj\Debug\Arduino_GUI.Form1.resources
+G:\Kandi\Robotic Arduino GUI\Arduino GUI\Arduino GUI\obj\Debug\Arduino_GUI.Properties.Resources.resources
+G:\Kandi\Robotic Arduino GUI\Arduino GUI\Arduino GUI\obj\Debug\Arduino GUI.csproj.GenerateResource.cache
+G:\Kandi\Robotic Arduino GUI\Arduino GUI\Arduino GUI\obj\Debug\Arduino GUI.csproj.CoreCompileInputs.cache
+G:\Kandi\Robotic Arduino GUI\Arduino GUI\Arduino GUI\obj\Debug\Arduino GUI.exe
+G:\Kandi\Robotic Arduino GUI\Arduino GUI\Arduino GUI\obj\Debug\Arduino GUI.pdb
