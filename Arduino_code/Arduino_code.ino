@@ -21,10 +21,12 @@ void setup() {
   pinMode(ledPin, OUTPUT);
   pinMode(buttonPin, INPUT);
   Servo1.attach(ServoPin); 
+
 }
 
 void loop(){ 
   buttonState = digitalRead(buttonPin);
+  
   
   if(Serial.available()){
     data = Serial.readString();
@@ -50,20 +52,7 @@ void loop(){
   //ohjelmistorakenne:
   //hiearkkia, servojen rinnakkaistoiminta (riippumatta liikuttamistavasta), asynkroninen toiminta,
 
-void algorithm(){
-  if (buttonState == HIGH){
-      digitalWrite(ledPin, HIGH);
-      int pos = 0;
-      while(pos < 270){
-        Servo1.write(pos); 
-        pos += 1; 
-        }
-     } else {
-      // Make servo go to original position
-      Servo1.write(0);
-      delay(15); 
-      digitalWrite(ledPin, LOW);
-     }
+void algorithm(float x1, float y1){
   //rajapinta servon nopeuden säätelyyn
   //laskee reittipisteet x0 -> haluttuun asentoon x1
   //return pistejono -> syötetään servolle nopeus pisteen pääsyyn
@@ -71,6 +60,28 @@ void algorithm(){
   //Ei mahdollista siirtää servoa alle max nopeuden -> loop; servoa liikutetaan vain yksi askel; delay; -> ajanmittaus -> ohjelmistokellon kautta(?)
   //main loopissa jokaista servon funktioo
   //emuloidaan eri moottorityyppien toimintaa (nopeus ja asentotieto)
+
+  //Tarkistetaan ollaanko jo pisteessä
+  Serial.println("algorithm funktio");
+  
+  float R1 = 1;
+  float value1 = (pow(x1,2)+pow(y1,2));
+  float value2 = pow(R1,2);
+
+  String a1 = String(value1);
+  String a2 = String(value2);
+  Serial.println(a1);
+  Serial.println(a2);   
+  
+  if(a1 == a2){ //(x0-x1)^2+(y0-y1)^2=r^2 ympyrän radan pisteet
+    //Ollaan ympyrän radan sisäpuolella, voidaan osua pisteeseen
+    Serial.println("IF passed");
+    float angle = atan2(y1,x1);
+    Serial.print(angle);
+    if(Servo1.read() != angle){
+        Servo1.write(x1);
+    }
+  }
 
 }
 
