@@ -1,17 +1,26 @@
 #include <Servo.h>
+//Servos:
+Servo Servo1; //Rotating bottom servo
+Servo Servo2; //Shoulder servo
+Servo Servo3; //Elbow servo
+Servo Servo4; //Wrist servo
 
-Servo Servo1;
+//Pins:
 const int buttonPin = 9; //Pin of the Button
 const int ledPin = 12; //Pin of the LED
 const int ServoPin = 3; //Pin of the Servo
 
+
+
+//Variables:
 String data; //Data from PC
 char d1; //Selects device
 String x;
-
 int buttonState = 0; //Variable for the pushbutton status
 
-int servoval = 1;
+//Time variables
+unsigned long time_now = 0;
+int period = 1000; // interval of 1 second
 
 void setup() { 
   Serial.begin(9600);
@@ -26,8 +35,7 @@ void setup() {
 
 void loop(){ 
   buttonState = digitalRead(buttonPin);
-  
-  
+
   if(Serial.available()){
     data = Serial.readString();
     d1 = data.charAt(0);
@@ -47,6 +55,11 @@ void loop(){
       break;
     }
   }
+
+  testServo(Servo1);
+  testServo(Servo2);
+  testServo(Servo3);
+  testServo(Servo4);
 }
 
   //ohjelmistorakenne:
@@ -85,12 +98,76 @@ void algorithm(float x1, float y1){
 
 }
 
-void servo_position(){
-  //robotille oma rajapinta -> kysytään moottorien asentoa
-  //säätöalgoritmille -> feedback (PID)
+//robotille oma rajapinta -> kysytään moottorien asentoa
+//Palauttaa viimeisen kirjoitetun kulman (ei välttämättä lopullinen kulma)
+int servo_position(Servo checkServo){
+  int lastinput = checkServo.read(); //Ainoa tapa tarkistaa kulma ennen pid säädintä
+  
+  return lastinput; 
 }
+
+  //säätöalgoritmille -> feedback (PID)
   //dv = a < liian kovaa
   //hidas lähtö tai rajoitettu nopeus tms.
 
   //EHKÄ vaihoehtoinen rajapinta paikkaan liittyen, mahdollisesti optio: softstart softstop (ease in ja ease out)
   //päälle älykkäämpi koneenohjausfunktio joka on siirrettävä
+
+
+// alatason funktioita
+  //rajapinta 1 servojen asennot (kulma) 
+  //rajapinta 2 servojen kulmanopeudelle kun kulmassa -> nopeus 0
+
+void EaseMvmnt(int spd, Servo servo, int goal){ //How fast, what, where
+  int period = 1000; // interval of 1 seconds
+  
+  int start = servo_position(servo);
+  unsigned int difference = goal - start;
+  float tread = difference/8;
+  unsigned float endpart = (goal - tread);
+
+  if(servo_position(servo) <= tread){
+      for(int i=start; i<=tread; i+=spd){
+        if(millis() >= time_now + period){
+          time_now += period;
+          servo.write(i);
+        }
+      }
+    }
+    
+  if(servo_position(servo) > tread && servo_position(servo) < endpart){
+    servo.write(endpart);
+  }
+  
+  if(servo_position(servo) >= endpart {
+        for(int i=endpart; i<=goal; i+=spd){
+          if(millis() >= time_now + period){
+          time_now += period;
+          servo.write(i);
+        }
+    }
+  }
+}
+
+void testServo(Servo servo){
+  Serial.print("Initializing servo:...");
+  initializeServo(servo);
+  Serial.print("done");
+  
+  Serial.print("Testing servo movement...");
+  servo.write(15);
+  Serial.print(servo_position(servo));
+  Serial.print("done");
+
+  Serial.print("Testing ease movement to 45 deg...");
+  EaseMvmnt(2, servo, 45);
+  Serial.print("done");
+
+  Serial.print("Testing ease movement to 120 deg...");
+  EaseMvmnt(2, servo, 120);
+  Serial.print("done");
+}
+
+void initializeServo(Servo servo){
+  servo.write(0);
+}
