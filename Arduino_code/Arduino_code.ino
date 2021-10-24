@@ -1,4 +1,5 @@
 #include <Servo.h>
+
 //Servos:
 Servo Servo1; //Rotating bottom servo
 Servo Servo2; //Shoulder servo
@@ -8,29 +9,39 @@ Servo Servo4; //Wrist servo
 //Pins:
 const int buttonPin = 9; //Pin of the Button
 const int ledPin = 12; //Pin of the LED
-const int ServoPin = 3; //Pin of the Servo
-
-
+const int Servo1Pin = 3; //Pin of the Servo 1
+const int Servo2Pin = 0; //Pin of the Servo 2
+const int Servo3Pin = 0; //Pin of the Servo 3
+const int Servo4Pin = 0; //Pin of the Servo 4
 
 //Variables:
 String data; //Data from PC
 char d1; //Selects device
 String x;
 int buttonState = 0; //Variable for the pushbutton status
+int ServoNmbr;
+File file;
+time Time;
 
 //Time variables
 unsigned long time_now = 0;
 int period = 1000; // interval of 1 second
 
 void setup() { 
-  Serial.begin(9600);
+  Serial.begin(9600); //Connects the UI to the servo
   
   //Initialize the input/output
-  pinMode(ServoPin, OUTPUT);
+  pinMode(Servo1Pin, OUTPUT);
+  pinMode(Servo2Pin, OUTPUT);
+  pinMode(Servo3Pin, OUTPUT);
+  pinMode(Servo4Pin, OUTPUT);
+  
   pinMode(ledPin, OUTPUT);
   pinMode(buttonPin, INPUT);
-  Servo1.attach(ServoPin); 
-
+  Servo1.attach(Servo1Pin); 
+  Servo2.attach(Servo2Pin); 
+  Servo3.attach(Servo3Pin); 
+  Servo4.attach(Servo4Pin); 
 }
 
 void loop(){ 
@@ -64,6 +75,50 @@ void loop(){
 
   //ohjelmistorakenne:
   //hiearkkia, servojen rinnakkaistoiminta (riippumatta liikuttamistavasta), asynkroninen toiminta,
+
+/* Inputed text: "move time ; servo to move ; desired angle"
+ *  Parses the text properly and calls the right function accordingly.
+ */
+void parse_text(String text){
+  int index1; // ;-locations
+  int index2;
+  int index3;
+  String delim = '*';
+  char c = text.read();
+   
+  if(c == delim){
+    Serial.println();
+    Serial.print("caputred String is : ");
+    Serial.println(readString);
+
+    index1 = readString.indexOf(';');
+    Time = readString.substring(0,ind1);
+    index2 = readString.indexOf(';', ind1+1);
+    ServoNmbr = readString.substring(ind1+1, ind2+1);
+    index3 = readString.indexOf(';', ind2+1);
+    angle = readString.substring(ind2+1);
+
+    Serial.print("Time = ");
+    Serial.println(Time); 
+    Serial.print("Servo number = ");
+    Serial.println(ServoNmbr);
+    Serial.print("angle = ");
+    Serial.println(angle);
+    Serial.println();
+    Serial.println();
+
+    //Do something with the parsed inputs;
+    
+    readString=""; //clears variable for new input
+    Time = "";
+    ServoNmbr = "";
+    angle = "";
+  } else {
+    readString += c;
+  }
+}
+
+  
 
 void algorithm(float x1, float y1){
   //rajapinta servon nopeuden säätelyyn
@@ -103,7 +158,7 @@ void algorithm(float x1, float y1){
 int servo_position(Servo checkServo){
   int lastinput = checkServo.read(); //Ainoa tapa tarkistaa kulma ennen pid säädintä
   
-  return lastinput; 
+  return lastinput;
 }
 
   //säätöalgoritmille -> feedback (PID)
@@ -118,7 +173,7 @@ int servo_position(Servo checkServo){
   //rajapinta 1 servojen asennot (kulma) 
   //rajapinta 2 servojen kulmanopeudelle kun kulmassa -> nopeus 0
 
-void EaseMvmnt(int spd, Servo servo, int goal){ //How fast, what, where
+void EaseMvmnt(Servo servo, int goal){ //How fast, what, where
   int period = 1000; // interval of 1 seconds
   
   int start = servo_position(servo);
@@ -147,6 +202,13 @@ void EaseMvmnt(int spd, Servo servo, int goal){ //How fast, what, where
         }
     }
   }
+}
+
+void move_servos(int position_servo1, int position_servo2, int position_servo3, int position_servo4){
+  Servo1.write(position_servo1);
+  Servo2.write(position_servo2);
+  Servo3.write(position_servo3);
+  Servo4.write(position_servo4);
 }
 
 void testServo(Servo servo){
