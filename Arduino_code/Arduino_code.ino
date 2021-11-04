@@ -1,5 +1,11 @@
 #include <Servo.h>
 
+/*
+ * Matlab – syötetään polku sekvenssi – pystyykö arduino suorittamaan. 
+ *(Aika ; servo nro ; kulma) tai (Aika ; Servo nro ; nopeus)
+ * Nopeudella eliminoidaan ongelma – huojuvuus, vastaa mekaniikka kysymykseen ja emuloidaan toista moottoria.
+ */
+
 //Servos:
 Servo Servo1; //Rotating bottom servo
 Servo Servo2; //Shoulder servo
@@ -20,15 +26,14 @@ char d1; //Selects device
 String x;
 int buttonState = 0; //Variable for the pushbutton status
 int ServoNmbr;
-File file;
-time Time;
+time_t Time;
 
 //Time variables
 unsigned long time_now = 0;
 int period = 1000; // interval of 1 second
 
 void setup() { 
-  Serial.begin(9600); //Connects the UI to the servo
+  Serial.begin(9600); //Connects the serialport (Matlab/GUI to Arduino)
   
   //Initialize the input/output
   pinMode(Servo1Pin, OUTPUT);
@@ -44,13 +49,26 @@ void setup() {
   Servo4.attach(Servo4Pin); 
 }
 
+void echo(String text){
+  char* cString = (char*) malloc(sizeof(char)*(text.length() + 1));
+  text.toCharArray(cString, text.length() + 1);
+  //Serial.println("Serial Print cString: " + cString);
+  Serial.println("Serial Print text: " + text);
+}
+
 void loop(){ 
   buttonState = digitalRead(buttonPin);
 
-  if(Serial.available()){
+  if(Serial.available()){ // if there is data to read
     data = Serial.readString();
-    d1 = data.charAt(0);
+    Serial.println("before echo: " + data);
+    echo(data);
+    
+    
 
+
+    /* GUI case switch
+     * 
     switch(d1){       //Select action based on 1st char
       case 'L':       // L = Turn on LED
       digitalWrite(ledPin,HIGH);
@@ -64,21 +82,27 @@ void loop(){
       Servo1.write(servoval);
       delay(100);   // Wait for servo to move
       break;
-    }
+      
+    }*/
   }
-
+/*
   testServo(Servo1);
   testServo(Servo2);
   testServo(Servo3);
   testServo(Servo4);
+  */
 }
 
   //ohjelmistorakenne:
   //hiearkkia, servojen rinnakkaistoiminta (riippumatta liikuttamistavasta), asynkroninen toiminta,
 
+
+// KAIKU RAJAPINTA - ottaa ja lähettää saman viestin -testataan interface
+
+
 /* Inputed text: "move time ; servo to move ; desired angle"
- *  Parses the text properly and calls the right function accordingly.
- */
+ * Parses the text properly and calls the right function accordingly.
+ 
 void parse_text(String text){
   int index1; // ;-locations
   int index2;
@@ -117,7 +141,7 @@ void parse_text(String text){
     readString += c;
   }
 }
-
+*/
   
 
 void algorithm(float x1, float y1){
@@ -173,13 +197,13 @@ int servo_position(Servo checkServo){
   //rajapinta 1 servojen asennot (kulma) 
   //rajapinta 2 servojen kulmanopeudelle kun kulmassa -> nopeus 0
 
-void EaseMvmnt(Servo servo, int goal){ //How fast, what, where
+void EaseMvmnt(Servo servo, int goal, int spd){ //How fast, what, where
   int period = 1000; // interval of 1 seconds
   
   int start = servo_position(servo);
   unsigned int difference = goal - start;
   float tread = difference/8;
-  unsigned float endpart = (goal - tread);
+  float endpart = (goal - tread);
 
   if(servo_position(servo) <= tread){
       for(int i=start; i<=tread; i+=spd){
@@ -194,7 +218,7 @@ void EaseMvmnt(Servo servo, int goal){ //How fast, what, where
     servo.write(endpart);
   }
   
-  if(servo_position(servo) >= endpart {
+  if(servo_position(servo) >= endpart) {
         for(int i=endpart; i<=goal; i+=spd){
           if(millis() >= time_now + period){
           time_now += period;
@@ -222,11 +246,11 @@ void testServo(Servo servo){
   Serial.print("done");
 
   Serial.print("Testing ease movement to 45 deg...");
-  EaseMvmnt(2, servo, 45);
+  EaseMvmnt(servo, 2, 45);
   Serial.print("done");
 
   Serial.print("Testing ease movement to 120 deg...");
-  EaseMvmnt(2, servo, 120);
+  EaseMvmnt(servo, 2, 120);
   Serial.print("done");
 }
 
