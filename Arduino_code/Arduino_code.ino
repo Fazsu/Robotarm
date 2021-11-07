@@ -7,23 +7,22 @@
  */
 
 //Servos:
-Servo Servo1; //Rotating bottom servo
-Servo Servo2; //Shoulder servo
-Servo Servo3; //Elbow servo
-Servo Servo4; //Wrist servo
+Servo Servo1; //Base
+Servo Servo2; //Left
+Servo Servo3; //Right
+Servo Servo4; //Claw
 
 //Pins:
 const int buttonPin = 9; //Pin of the Button
 const int ledPin = 12; //Pin of the LED
-const int Servo1Pin = 3; //Pin of the Servo 1
-const int Servo2Pin = 0; //Pin of the Servo 2
-const int Servo3Pin = 0; //Pin of the Servo 3
-const int Servo4Pin = 0; //Pin of the Servo 4
+const int Servo1Pin = 1; //Pin of the Servo 1
+const int Servo2Pin = 2; //Pin of the Servo 2
+const int Servo3Pin = 3; //Pin of the Servo 3
+const int Servo4Pin = 4; //Pin of the Servo 4
 
 //Variables:
 String data; //Data from PC
 char d1; //Selects device
-String x;
 int buttonState = 0; //Variable for the pushbutton status
 int ServoNmbr;
 time_t Time;
@@ -49,11 +48,18 @@ void setup() {
   Servo4.attach(Servo4Pin); 
 }
 
+// KAIKU RAJAPINTA - ottaa ja lähettää saman viestin takaisin
 void echo(String text){
   char* cString = (char*) malloc(sizeof(char)*(text.length() + 1));
   text.toCharArray(cString, text.length() + 1);
-  //Serial.println("Serial Print cString: " + cString);
   Serial.println("Serial Print text: " + text);
+}
+
+//Robotille oma rajapinta -> kysytään moottorien asentoa
+//Palauttaa viimeisen kirjoitetun kulman (ei välttämättä lopullinen kulma)
+int servo_position(Servo checkServo){
+  int lastinput = checkServo.read(); //Ainoa tapa tarkistaa kulma ennen pid säädintä
+  Serial.println(lastinput);
 }
 
 void loop(){ 
@@ -61,29 +67,47 @@ void loop(){
 
   if(Serial.available()){ // if there is data to read
     data = Serial.readString();
-    Serial.println("before echo: " + data);
     echo(data);
-    
-    
+    d1 = data[0];
 
-
-    /* GUI case switch
-     * 
-    switch(d1){       //Select action based on 1st char
-      case 'L':       // L = Turn on LED
-      digitalWrite(ledPin,HIGH);
-      break;
-      case 'l':       // l = Turn off LED
-      digitalWrite(ledPin, LOW);
-      break;
-      case 'S':       // S = Move Servo
-      x = data.substring(1);
-      servoval = x.toInt();
-      Servo1.write(servoval);
-      delay(100);   // Wait for servo to move
-      break;
+    char s = data[1];
+    int servo = s.toInt();
       
-    }*/
+    String x = data.substring(2);
+    int servoval = x.toInt();
+        
+    switch(d1){       //Select action based on 1st char
+      case 'L':       // Sequence list action
+        break;
+        
+      case 'C':       //Check servo "C1" -> Check Servo1
+        if(servo == 1){
+          servo_position(Servo1);
+        } if(servo == 2) {
+          servo_position(Servo2);
+        } if(servo == 3){
+          servo_position(Servo3);
+        } if(servo == 4){
+          servo_position(Servo4);
+        }
+        break;
+        
+      case 's':   //Move individual servo "S1120" -> servo 1 to 120deg
+        if(servo == 1){
+          Servo1.write(servoval);
+          delay(100);   // Wait for servo to move
+        } if(servo == 2) {
+          Servo2.write(servoval);
+          delay(100);   // Wait for servo to move
+        } if(servo == 3){
+          Servo3.write(servoval);
+          delay(100);   // Wait for servo to move
+        } if(servo == 4){
+          Servo4.write(servoval);
+          delay(100);   // Wait for servo to move
+        }
+        break;
+    }
   }
 /*
   testServo(Servo1);
@@ -93,11 +117,8 @@ void loop(){
   */
 }
 
-  //ohjelmistorakenne:
-  //hiearkkia, servojen rinnakkaistoiminta (riippumatta liikuttamistavasta), asynkroninen toiminta,
-
-
-// KAIKU RAJAPINTA - ottaa ja lähettää saman viestin -testataan interface
+//ohjelmistorakenne:
+//hiearkkia, servojen rinnakkaistoiminta (riippumatta liikuttamistavasta), asynkroninen toiminta,
 
 
 /* Inputed text: "move time ; servo to move ; desired angle"
@@ -144,47 +165,6 @@ void parse_text(String text){
 */
   
 
-void algorithm(float x1, float y1){
-  //rajapinta servon nopeuden säätelyyn
-  //laskee reittipisteet x0 -> haluttuun asentoon x1
-  //return pistejono -> syötetään servolle nopeus pisteen pääsyyn
-  //anturitiedolla pysäytys tms.
-  //Ei mahdollista siirtää servoa alle max nopeuden -> loop; servoa liikutetaan vain yksi askel; delay; -> ajanmittaus -> ohjelmistokellon kautta(?)
-  //main loopissa jokaista servon funktioo
-  //emuloidaan eri moottorityyppien toimintaa (nopeus ja asentotieto)
-
-  //Tarkistetaan ollaanko jo pisteessä
-  Serial.println("algorithm funktio");
-  
-  float R1 = 1;
-  float value1 = (pow(x1,2)+pow(y1,2));
-  float value2 = pow(R1,2);
-
-  String a1 = String(value1);
-  String a2 = String(value2);
-  Serial.println(a1);
-  Serial.println(a2);   
-  
-  if(a1 == a2){ //(x0-x1)^2+(y0-y1)^2=r^2 ympyrän radan pisteet
-    //Ollaan ympyrän radan sisäpuolella, voidaan osua pisteeseen
-    Serial.println("IF passed");
-    float angle = atan2(y1,x1);
-    Serial.print(angle);
-    if(Servo1.read() != angle){
-        Servo1.write(x1);
-    }
-  }
-
-}
-
-//robotille oma rajapinta -> kysytään moottorien asentoa
-//Palauttaa viimeisen kirjoitetun kulman (ei välttämättä lopullinen kulma)
-int servo_position(Servo checkServo){
-  int lastinput = checkServo.read(); //Ainoa tapa tarkistaa kulma ennen pid säädintä
-  
-  return lastinput;
-}
-
   //säätöalgoritmille -> feedback (PID)
   //dv = a < liian kovaa
   //hidas lähtö tai rajoitettu nopeus tms.
@@ -226,13 +206,6 @@ void EaseMvmnt(Servo servo, int goal, int spd){ //How fast, what, where
         }
     }
   }
-}
-
-void move_servos(int position_servo1, int position_servo2, int position_servo3, int position_servo4){
-  Servo1.write(position_servo1);
-  Servo2.write(position_servo2);
-  Servo3.write(position_servo3);
-  Servo4.write(position_servo4);
 }
 
 void testServo(Servo servo){
