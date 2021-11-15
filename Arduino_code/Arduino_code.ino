@@ -48,6 +48,22 @@ void setup() {
   Servo4.attach(Servo4Pin); 
 }
 
+//ohjelmistorakenne:
+//hiearkkia, servojen rinnakkaistoiminta (riippumatta liikuttamistavasta), asynkroninen toiminta,
+
+//säätöalgoritmille -> feedback (PID)
+//dv = a < liian kovaa
+//hidas lähtö tai rajoitettu nopeus tms.
+
+//EHKÄ vaihoehtoinen rajapinta paikkaan liittyen, mahdollisesti optio: softstart softstop (ease in ja ease out)
+//päälle älykkäämpi koneenohjausfunktio joka on siirrettävä
+
+
+// alatason funktioita
+  //rajapinta 1 servojen asennot (kulma) 
+  //rajapinta 2 servojen kulmanopeudelle kun kulmassa -> nopeus 0
+
+
 // KAIKU RAJAPINTA - ottaa ja lähettää saman viestin takaisin
 void echo(String text){
   char* cString = (char*) malloc(sizeof(char)*(text.length() + 1));
@@ -65,19 +81,30 @@ int servo_position(Servo checkServo){
 void loop(){ 
   buttonState = digitalRead(buttonPin);
 
-  if(Serial.available()){ // if there is data to read
-    data = Serial.readString();
+  if(Serial.available()){ // If there is data to read
+    data = Serial.readString(); 
+
+    //Komennon muoto? Viestipituus ongelma. Fixed length. Ei hyvä. 255 merkkiongelma.
+    //Miten ilmoitetaan aika?
+    //Käytetään Arduinon kelloa.
+    //Parsitaan funktio delimiterin avulla.
+    
     echo(data);
     d1 = data[0];
 
-    char s = data[1];
-    int servo = s.toInt();
+    if(data.length() > 1){
+      char s = data[1];
+      int servo = s.toInt();
       
-    String x = data.substring(2);
-    int servoval = x.toInt();
+      if(data.length() > 2){
+        String x = data.substring(2);
+        int servoval = x.toInt();
+      }
+    }
         
     switch(d1){       //Select action based on 1st char
-      case 'L':       // Sequence list action
+      case 'L':       //Sequence list action
+        
         break;
         
       case 'C':       //Check servo "C1" -> Check Servo1
@@ -89,22 +116,26 @@ void loop(){
           servo_position(Servo3);
         } if(servo == 4){
           servo_position(Servo4);
+        } else {
+          Serial.println("Error: Check input.");
         }
         break;
         
-      case 's':   //Move individual servo "S1120" -> servo 1 to 120deg
+      case 'S':   //Move individual servo "S1120" -> servo 1 to 120deg
         if(servo == 1){
           Servo1.write(servoval);
-          delay(100);   // Wait for servo to move
+          delay(100); // Wait for servo to move
         } if(servo == 2) {
           Servo2.write(servoval);
-          delay(100);   // Wait for servo to move
+          delay(100);
         } if(servo == 3){
           Servo3.write(servoval);
-          delay(100);   // Wait for servo to move
+          delay(100);
         } if(servo == 4){
           Servo4.write(servoval);
-          delay(100);   // Wait for servo to move
+          delay(100); 
+        } else {
+          Serial.println("Error: Check input.");
         }
         break;
     }
@@ -117,13 +148,9 @@ void loop(){
   */
 }
 
-//ohjelmistorakenne:
-//hiearkkia, servojen rinnakkaistoiminta (riippumatta liikuttamistavasta), asynkroninen toiminta,
-
-
 /* Inputed text: "move time ; servo to move ; desired angle"
  * Parses the text properly and calls the right function accordingly.
- 
+ */
 void parse_text(String text){
   int index1; // ;-locations
   int index2;
@@ -162,20 +189,7 @@ void parse_text(String text){
     readString += c;
   }
 }
-*/
-  
 
-  //säätöalgoritmille -> feedback (PID)
-  //dv = a < liian kovaa
-  //hidas lähtö tai rajoitettu nopeus tms.
-
-  //EHKÄ vaihoehtoinen rajapinta paikkaan liittyen, mahdollisesti optio: softstart softstop (ease in ja ease out)
-  //päälle älykkäämpi koneenohjausfunktio joka on siirrettävä
-
-
-// alatason funktioita
-  //rajapinta 1 servojen asennot (kulma) 
-  //rajapinta 2 servojen kulmanopeudelle kun kulmassa -> nopeus 0
 
 void EaseMvmnt(Servo servo, int goal, int spd){ //How fast, what, where
   int period = 1000; // interval of 1 seconds
