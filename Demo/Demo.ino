@@ -53,8 +53,8 @@ void setup() {
 }
 
 void loop() {
-  currentMillis = millis();
   buttonState = digitalRead(buttonPin);
+  currentMillis = millis();
   
   if(buttonState == HIGH){
     phase = 0;
@@ -63,11 +63,8 @@ void loop() {
   int S1Now = Servo1.read();
   int S2Now = Servo2.read();
   int S3Now = Servo3.read();
-  //Does something every "period that passes" (Period = 0,1s)
+  //Does something every "period that passes" (Period = 0,05s)
   if(currentMillis - startMillis >= period){
-    
-
-    
     Serial.println("Period passed");
     
     if(phase == 0){
@@ -86,20 +83,23 @@ void loop() {
     
     //Phase to move the grabber down
     if(phase == 1){
-      
       Serial.println("Phase 1");
+      
       Servo4.write(OpenClaw);
       
       if(S1Now < downS1){
         Servo1.write(S1Now+1);
       }
+      
       if(S3Now < downS3){
         Servo2.write(S3Now+1);
       }
-      if(S1Now == downS1 && S3Now == downS3){
+      
+      if(S1Now >= downS1 && S3Now >= downS3){
         if(S2Now < downS2){
-           Servo2.write(S2Now+2);
-        }if(S2Now == downS2){
+         Servo2.write(S2Now+3);
+        }
+        if(S2Now >= downS2){
           Servo4.write(CloseClaw);
           digitalWrite(ledPin, HIGH);
           delay(250);
@@ -123,7 +123,7 @@ void loop() {
       if(S3Now < upS3){
         Servo3.write(S3Now+1);
       }
-      if(S2Now <= upS2 && S3Now <= upS3){
+      if(S2Now <= upS2 && S3Now >= upS3){
         digitalWrite(ledPin, HIGH);
         delay(250);
         digitalWrite(ledPin, LOW);
@@ -159,5 +159,6 @@ void loop() {
       
     }
     startMillis = currentMillis;
+    
   }
 }
