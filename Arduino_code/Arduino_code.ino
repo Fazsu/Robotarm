@@ -36,15 +36,18 @@ const int Servo3Pin = 3; //Pin of the Servo 3
 const int Servo4Pin = 4; //Pin of the Servo 4
 
 //Variables:
+String readString; //captured String
 String data; //Data from PC
 char d1; //Selects device
 int buttonState = 0; //Variable for the pushbutton status
-unsigned long startMillis;
-unsigned long currentMillis;
-const unsigned long period = 50; // Period = 0,05s
+
+int counter = 0;
 
 //Time variables
-unsigned long time_now = 0;
+unsigned long startMillis;
+unsigned long currentMillis;
+const unsigned long period = 500; // Period = 0,50s
+unsigned long Time;
 
 void setup() { 
   Serial.begin(9600); //Connects the serialport (Matlab/GUI to Arduino)
@@ -60,8 +63,8 @@ void setup() {
   Servo1.attach(Servo1Pin); 
   Servo2.attach(Servo2Pin); 
   Servo3.attach(Servo3Pin); 
-  Servo4.attach(Servo4Pin); 
-
+  Servo4.attach(Servo4Pin);
+  
   startMillis = millis();
 }
 
@@ -69,15 +72,6 @@ void setup() {
 // Tarvitaan aikaleima (Time), Tieto moottorista (Servo), Kulma tietyllä ajanhetkellä (Angle/AngularVel)
 // Tehdään lista tehtävistä -> saapuvat matlabilta kronologisessa järjestyksessä
 // Tallennetaan sekvenssi (struktina) listaan -> käydään listaa läpi -> tarkistetaan seuraavan aikaleiman tiedot 
-
-// For(listan alkio)
-//  Robot_state[i]
-//  foreach Robot_staten servo
-//    Command
-//  Sleep = Next i time check.
-
-// ServoState -> tallennetaan kulmat structiin -> tallennetaan structi vectoriin; Käydään läpi vektoria elementeitteiteittäin
-// tarkistetaan seuraavan ServoStaten aikaleima -> toimitaan oikein (odotetaan, käännytään) 
 
 // Trejectory planning: Alkupiste - loppupiste alukis, katsotaana myöhemmin rajoitteet
 
@@ -115,28 +109,169 @@ int servo_position(Servo checkServo){
   Serial.println(lastinput);
 }
 
+//Structi jokaiselle "eventille"
+typedef struct 
+  {
+    unsigned long Time;
+    int S1Angle;
+    int S2Angle;
+    int S3Angle;
+    int S4Angle;
+  } Action;
+
+Action actionRecord[5]; // Array of 5 actions (Arduino does not have a dynamic data stroage -> Vector could not be used)
+
 void loop(){ 
-  buttonState = digitalRead(buttonPin);
-
-  if(currentMillis - startMillis >= period){ //Period has passed
-
-    startMillis = currentMillis;
-  }
-
-  if(Serial.available()){ // If there is data to read
-    data = Serial.readString(); 
-
-    //Komennon muoto? Viestipituus ongelma. Fixed length. Ei hyvä. 255 merkkiongelma.
-    //Miten ilmoitetaan aika?
-    //Käytetään Arduinon kelloa.
-    //Parsitaan funktio delimiterin avulla.
+  //Temporarly used variables
+  String TimeStr;
+  String S1Str;
+  String S2Str;
+  String S3Str;
+  String S4Str;
     
-    echo(data);
+  int S1;
+  int S2;
+  int S3;
+  int S4;
+  
+  int index1;
+  int index2;
+  int index3;
+  int index4;
+  int index5;
+  
+  buttonState = digitalRead(buttonPin);
+  currentMillis = millis();
+  
+  if(Serial.available() > 0){ // Checks if there is data to read  
+    //echo(data);
+
+    char c = Serial.read();
+    
+   /* Expect inputed text: "move time;s1 angle;---;s4 angle*"
+    * Parses the text properly and calls the right function accordingly.
+    * Because of Arduinos limitations, own class could not be made.
+    */
+    if(c == '*'){
+      Serial.println();
+      Serial.print("caputred String is : ");
+      Serial.println(readString);
+
+      //Checks indexes of the delimiters ";", parses the inputs correctly
+      index1 = readString.indexOf(';');
+      TimeStr = readString.substring(0,index1);
+      index2 = readString.indexOf(';', index1+1);
+      S1Str = readString.substring(index1+1, index2);
+      index3 = readString.indexOf(';', index2+1);
+      S2Str = readString.substring(index2+1,index3);
+      index4 = readString.indexOf(';', index3+1);
+      S3Str = readString.substring(index3+1,index4);
+      index5 = readString.indexOf(';', index4+1);
+      S4Str = readString.substring(index4+1,index5);
+
+      //Converting the captured strings to integer
+      Time = TimeStr.toInt() + currentMillis;
+      S1 = S1Str.toInt();
+      S2 = S2Str.toInt();
+      S3 = S3Str.toInt();
+      S4 = S4Str.toInt();
+
+      //Storing the captured values into the action record
+      actionRecord[counter].Time = Time;
+      actionRecord[counter].S1Angle = S1;
+      actionRecord[counter].S2Angle = S2;
+      actionRecord[counter].S3Angle = S3;
+      actionRecord[counter].S4Angle = S4;
+
+      //Checking the captured values
+      Serial.print("Time = ");
+      Serial.println(TimeStr); 
+      Serial.print("Servo 1 angle = ");
+      Serial.println(S1Str);
+      Serial.print("Servo 2 angle = ");
+      Serial.println(S2Str);
+      Serial.print("Servo 3 angle = ");
+      Serial.println(S3Str);
+      Serial.print("Servo 4 angle = ");
+      Serial.println(S4Str);
+      Serial.print("Counter =");
+      Serial.println(counter);
+    
+      //Clear variables for new inputs  
+      readString=""; 
+      TimeStr = "";
+      S1Str = "";
+      S2Str = "";
+      S3Str = "";
+      S4Str = "";
+      counter += 1;
+      unsigned long Timer = millis();
+    } else {
+      //Adds the character to the string
+      readString += c;
+    }
+  } else {
+    /* For(listan alkio)
+     *  Robot_state[i]
+     *  foreach Robot_staten servo
+     *    Command
+     *  Sleep = Next i time check.
+      */
+
+// ServoState -> tallennetaan kulmat structiin -> tallennetaan structi vectoriin; Käydään läpi vektoria elementeitteiteittäin
+// tarkistetaan seuraavan ServoStaten aikaleima -> toimitaan oikein (odotetaan, käännytään) 
+
+    //Checks if the action record is not empty
+    if(actionRecord[0].Time !=  0 ) {
+
+      //Checks each element of the record
+      for(int i = 0; i < 5; ++i){
+        int t = actionRecord[i].Time;
+        int s1 = actionRecord[i].S1Angle;
+        int s2 = actionRecord[i].S2Angle;
+        int s3 = actionRecord[i].S3Angle;
+        int s4 = actionRecord[i].S4Angle;
+
+        //String message = "Action " + String(i+1) + ": Time:" + String(t) + ", Servo 1: " + String(s1) + ", Servo 2: " + String(s2) + ", Servo 3: " + String(s3) + ", Servo 4: " + String(s4);
+        //Serial.println(message);
+
+        // Since all the items are in chronological order -> check if time to act -> acts properly
+        if(t == currentMillis){
+          String actionMsg = "Initiating action: " + String(i+1);
+          Serial.println(actionMsg);
+          Servo1.write(s1);
+          Servo2.write(s2);
+          Servo3.write(s3);
+          Servo4.write(s4);
+          } 
+        }
+    }
+  }
+}
+ 
+ /*
+void EaseMvmnt(int servo, int goal, int speedphase){ 
+  
+  int start = servo_position(servo);
+  unsigned int difference = goal - start;
+  float tread = difference/8;
+  float endpart = (goal - tread);
+
+  // Rajoitetaan nopeutta hidastamalla kulmanopeutta
+  // -> Riippuu servosta mikä max nopeus (automaattinen)
+}
+
+void initializeServo(Servo servo){
+  servo.write(0);
+}
+*/
+
+    /*
     d1 = data[0];
 
     if(data.length() > 1){
       char s = data[1];
-      int servo = s.toInt();
+      int servo = (int)s;
       
       if(data.length() > 2){
         String x = data.substring(2);
@@ -180,79 +315,4 @@ void loop(){
           Serial.println("Error: Check input.");
         }
         break;
-    }
-  }
-
-}
-
-/* Expect inputed text: "move time;s1 angle;s2 angle;---s5 angle"
- * Parses the text properly and calls the right function accordingly.
- */
-void parse_text(String text){
-  int S1;
-  int S2;
-  int S3;
-  int S4;
-  
-  int index1;
-  int index2;
-  int index3;
-  
-  char c = text.read();
-   
-  if(c == '*'){
-    Serial.println();
-    Serial.print("caputred String is : ");
-    Serial.println(readString);
-
-    index1 = readString.indexOf(';');
-    Time = readString.substring(0,index1);
-    index2 = readString.indexOf(';', index1+1);
-    S1 = readString.substring(index1+1, index2-1);
-    index3 = readString.indexOf(';', index2+1);
-    S2 = readString.substring(index2+1,index3-1);
-    index4 = readString.indexOf(';', index3+1);
-    S3 = readString.substring(index3+1,index4-1);
-    index5 = readString.indexOf(';', index4+1);
-    S4 = readString.substring(index4+1,index5-1);
-
-    Serial.print("Time = ");
-    Serial.println(Time); 
-    Serial.print("Servo number = ");
-    Serial.println(ServoNmbr);
-    Serial.print("angle = ");
-    Serial.println(angle);
-    Serial.println();
-    Serial.println();
-
-    //Do something with the parsed inputs;
-    
-    
-    readString=""; //clear variables for new inputs
-    Time = "";
-    ServoNmbr = "";
-    Angle = "";
-  } else {
-    readString += c;
-  }
-}
-
-
-void EaseMvmnt(int servo, int goal, int speedphase){ 
-  
-  int start = servo_position(servo);
-  unsigned int difference = goal - start;
-  float tread = difference/8;
-  float endpart = (goal - tread);
-
-  // Rajoitetaan nopeutta hidastamalla kulmanopeutta
-  // -> Riippuu servosta mikä max nopeus (automaattinen)
-}
-
-void testServos(){
-  
-}
-
-void initializeServo(Servo servo){
-  servo.write(0);
-}
+    }*/
