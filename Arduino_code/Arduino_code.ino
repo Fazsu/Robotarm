@@ -1,9 +1,33 @@
 #include <Servo.h>
 
+<<<<<<< Updated upstream
 Servo Servo1;
 const int buttonPin = 9; //Pin of the Button
 const int ledPin = 12; //Pin of the LED
 const int ServoPin = 3; //Pin of the Servo
+=======
+/*
+ ******************AUTHOR***********************
+ *     CREATED BY: MISKA ROMPPAINEN            *
+ *     EMAIL: miska.romppainen@hotmail.com     *
+ ***********************************************   
+ *****************PROJECT***********************
+ *             MeARM Project                   *
+ *    Code for Arduino:                        *
+ *    - Recevies message containing sequence   *
+ *    list from 3rd Party controller, such     *
+ *    as Matlab                                *
+ *    - parses the message and creates the     *                
+ *    sequence list                            *     
+ *    - Controlls the Servo motors             *
+ ***********************************************   
+ */
+//Servos:
+Servo Servo1; //Base
+Servo Servo2; //Left
+Servo Servo3; //Right
+Servo Servo4; //Claw
+>>>>>>> Stashed changes
 
 String data; //Data from PC
 char d1; //Selects device
