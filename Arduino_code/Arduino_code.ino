@@ -26,10 +26,11 @@ Servo Servo4; //Claw
 
 //Initialization values
 unsigned long Time_Init = 1;
-int S1_Init = 90;
-int S2_Init = 60;
-int S3_Init = -120;
-int S4_Init = 0;
+long S1_Init = 90;
+long S2_Init = 60;
+long S3_Init = -120;
+long S4_Init = 0;
+const long S3_SCALE = 180;
 
 //Pins:
 const int buttonPin = 7; //Pin of the Button
@@ -57,10 +58,10 @@ bool CapturedAll = 0;
 typedef struct
 {
   unsigned long Time;
-  int S1Angle;
-  int S2Angle;
-  int S3Angle;
-  int S4Angle;
+  long S1Angle;
+  long S2Angle;
+  long S3Angle;
+  long S4Angle;
 } Action;
 
 Action actionRecord[100]; // Array of 100 actions (Arduino does not have a dynamic data stroage -> Vector could not be used)
@@ -83,6 +84,9 @@ void setup() {
 }
 
 void Initialize() {
+
+  S3_Init = S3_SCALE + S3_Init;
+  
   //Initial positions
   actionRecord[0].Time = Time_Init;
   actionRecord[0].S1Angle = S1_Init;
@@ -103,10 +107,10 @@ void loop() {
   String S3Str;
   String S4Str;
 
-  int S1;
-  int S2;
-  int S3;
-  int S4;
+  long S1;
+  long S2;
+  long S3;
+  long S4;
 
   int index1;
   int index2;
@@ -123,7 +127,8 @@ void loop() {
 
     char c = Serial.read();
 
-    /*  ----------------------------FUNCTION-----------------------------------
+    /*  
+        ----------------------------FUNCTION-----------------------------------
         Expect inputed text: "move time;s1 angle;---;s4 angle*"
         Parses the text properly and calls the right function accordingly.
         Because of Arduinos limitations, own class could not be made.
@@ -141,10 +146,12 @@ void loop() {
         actionRecord[i].S4Angle = 0;
       }
       Serial.print("Action Record cleared!");
-
+      //c = 0;
+      
       // Signal arduino that every event has been sent and captured
     } if (c == 'k') {
       CapturedAll = 1;
+      //c = 0;
       Initialize();
 
       // Receive incoming events over serial port
@@ -180,15 +187,15 @@ void loop() {
       //Converting the captured strings to integer
       S1 = S1Str.toInt();
       S2 = S2Str.toInt();
-      S3 = S3Str.toInt();
+      S3 = S3_SCALE + S3Str.toInt();
       S4 = S4Str.toInt();
 
       //Storing the captured values into the action record
       actionRecord[counter].Time = Time;
-      actionRecord[counter].S1Angle = S1;
-      actionRecord[counter].S2Angle = S2;
-      actionRecord[counter].S3Angle = S3;
-      actionRecord[counter].S4Angle = S4;
+      actionRecord[counter].S1Angle = (long)S1;
+      actionRecord[counter].S2Angle = (long)S2;
+      actionRecord[counter].S3Angle = (long)S3;
+      actionRecord[counter].S4Angle = (long)S4;
 
       //Clear variables for new inputs
       readString = "";
@@ -228,10 +235,10 @@ void loop() {
           String actionMsg = "Initiating action: " + String(i);
           Serial.println(actionMsg);
 
-          int s1 = actionRecord[i].S1Angle;
-          int s2 = actionRecord[i].S2Angle;
-          int s3 = actionRecord[i].S3Angle;
-          int s4 = actionRecord[i].S4Angle;
+          long s1 = actionRecord[i].S1Angle;
+          long s2 = actionRecord[i].S2Angle;
+          long s3 = actionRecord[i].S3Angle;
+          long s4 = actionRecord[i].S4Angle;
 
           // Since all the items are in chronological order -> check if time to act -> acts properly
           if (i < 99) {
@@ -241,14 +248,14 @@ void loop() {
               unsigned long MOVING_TIME = t_next - t;
               unsigned long progress = millis() - startMillis;
 
-              int S1angle_now = Servo1.read();
-              int S1angle_next = actionRecord[next].S1Angle;
+              long S1angle_now = Servo1.read();
+              long S1angle_next = actionRecord[next].S1Angle;
 
-              int S2angle_now = Servo2.read();
-              int S2angle_next = actionRecord[next].S2Angle;
+              long S2angle_now = Servo2.read();
+              long S2angle_next = actionRecord[next].S2Angle;
 
-              int S3angle_now = Servo3.read();
-              int S3angle_next = actionRecord[next].S3Angle;
+              long S3angle_now = Servo3.read();
+              long S3angle_next = actionRecord[next].S3Angle;
 
               if (progress <= MOVING_TIME) {
                 long S1_angle = map(progress, 0, MOVING_TIME, S1angle_now, S1angle_next);
@@ -274,7 +281,10 @@ void loop() {
                 Servo1.write(S1angle_next);
                 Servo2.write(S2angle_next);
                 Servo3.write(S3angle_next);
-                Serial.print("Times up, proceeding...");
+                Serial.println(S1angle_next);
+                Serial.println(S2angle_next);
+                Serial.println(S3angle_next);
+                Serial.println("Proceeding...");
                 startMillis = millis();
                 i++;
               }
