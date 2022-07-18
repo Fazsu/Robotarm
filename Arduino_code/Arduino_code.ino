@@ -19,26 +19,24 @@
  ***********************************************   
  */
 //Servos:
-Servo Servo1; //Base
-Servo Servo2; //Left
-Servo Servo3; //Right
-Servo Servo4; //Claw
+Servo ServoBase; //Base
+Servo ServoJoint1; //Left
+Servo ServoJoint2; //Right
+Servo ServoClaw; //Claw
 
 //Initialization values
 unsigned long Time_Init = 1;
-long S1_Init = 90;
-long S2_Init = 60;
-long S3_Init = -120;
-long S4_Init = 0;
-const long S3_SCALE = 180;
+long SBase_Init = 90;
+long SJ1_Init = 60;
+long SJ2_Init = 60;
+long SClaw_Init = 0;
+const long SJ2_SCALE = 180;
 
 //Pins:
-const int buttonPin = 7; //Pin of the Button
-const int ledPin = 0; //Pin of the LED
-const int Servo1Pin = 1; //Pin of the Servo 1
-const int Servo2Pin = 2; //Pin of the Servo 2
-const int Servo3Pin = 3; //Pin of the Servo 3
-const int Servo4Pin = 4; //Pin of the Servo 4
+const int ServoBasePin = 1; //Pin of the Servo base
+const int ServoJoint1Pin = 2; //Pin of the Servo 1st joint
+const int ServoJoint2Pin = 3; //Pin of the Servo 2nd joint
+const int ServoClawPin = 4; //Pin of the Servo claw
 
 //Variables:
 String readString; //captured String
@@ -46,7 +44,7 @@ String data; //Data from PC
 char d1; //Selects device
 int buttonState = 0; //Variable for the pushbutton status
 
-int counter = 1;
+int counter = 1; //Counter to track enumeration
 
 //Time variables
 unsigned long startMillis;
@@ -54,63 +52,58 @@ unsigned long Time;
 
 bool CapturedAll = 0;
 
-//Structi jokaiselle "eventille"
+//Struct for event
 typedef struct
 {
   unsigned long Time;
-  long S1Angle;
-  long S2Angle;
-  long S3Angle;
-  long S4Angle;
-} Action;
+  long SBaseAngle;
+  long SJ1Angle;
+  long SJ2Angle;
+  long SClawAngle;
+} Event;
 
-Action actionRecord[100]; // Array of 100 actions (Arduino does not have a dynamic data stroage -> Vector could not be used)
+Event EventArray[100]; // Array of 100 Events (Arduino does not have a dynamic data stroage -> Vector could not be used)
 
 void setup() {
-  Serial.begin(9600); //Connects the serialport (Matlab/GUI to Arduino)
+  Serial.begin(9600); //Baudrate of serialport (Matlab/GUI to Arduino)
 
   //Initialize the input/output
-  pinMode(Servo1Pin, OUTPUT);
-  pinMode(Servo2Pin, OUTPUT);
-  pinMode(Servo3Pin, OUTPUT);
-  pinMode(Servo4Pin, OUTPUT);
+  pinMode(ServoBasePin, OUTPUT);
+  pinMode(ServoJoint1Pin, OUTPUT);
+  pinMode(ServoJoint2Pin, OUTPUT);
+  pinMode(ServoClawPin, OUTPUT);
 
-  pinMode(ledPin, OUTPUT);
-  pinMode(buttonPin, INPUT);
-  Servo1.attach(Servo1Pin);
-  Servo2.attach(Servo2Pin);
-  Servo3.attach(Servo3Pin);
-  Servo4.attach(Servo4Pin);
+  ServoBase.attach(ServoBasePin);
+  ServoJoint1.attach(ServoJoint1Pin);
+  ServoJoint2.attach(ServoJoint2Pin);
+  ServoClaw.attach(ServoClawPin);
 }
 
 void Initialize() {
-
-  S3_Init = S3_SCALE + S3_Init;
-  
   //Initial positions
-  actionRecord[0].Time = Time_Init;
-  actionRecord[0].S1Angle = S1_Init;
-  actionRecord[0].S2Angle = S2_Init;
-  actionRecord[0].S3Angle = S3_Init;
-  actionRecord[0].S4Angle = S4_Init;
+  EventArray[0].Time = Time_Init;
+  EventArray[0].SBaseAngle = SBase_Init;
+  EventArray[0].SJ1Angle = SJ1_Init;
+  EventArray[0].SJ2Angle = SJ2_Init;
+  EventArray[0].SClawAngle = SClaw_Init;
 
-  Servo1.write(S1_Init);
-  Servo2.write(S2_Init);
-  Servo3.write(S3_Init);
-  Servo4.write(S4_Init);
+  ServoBase.write(SBase_Init);
+  ServoJoint1.write(SJ1_Init);
+  ServoJoint2.write(SJ2_Init);
+  ServoClaw.write(SClaw_Init);
 }
 void loop() {
   //Temporarly used variables
   String TimeStr;
-  String S1Str;
-  String S2Str;
-  String S3Str;
-  String S4Str;
+  String SBaseStr;
+  String SJ1Str;
+  String SJ2Str;
+  String SClawStr;
 
-  long S1;
-  long S2;
-  long S3;
-  long S4;
+  long SBase;
+  long SJ1;
+  long SJ2;
+  long SClaw;
 
   int index1;
   int index2;
@@ -121,40 +114,38 @@ void loop() {
   int Time_index2;
   int Time_index3;
 
-  buttonState = digitalRead(buttonPin);
-
   if (Serial.available() > 0) { // Checks if there is data to read
 
     char c = Serial.read();
 
     /*  
         ----------------------------FUNCTION-----------------------------------
-        Expect inputed text: "move time;s1 angle;---;s4 angle*"
+        Expect inputed text: "move time;SBase angle;---;SClaw angle*"
         Parses the text properly and calls the right function accordingly.
         Because of Arduinos limitations, own class could not be made.
         -----------------------------------------------------------------------
     */
 
-    // CLEAR ACTION RECORD
+    // CLEAR Event array
     if (c == 'c') {
       counter = 1; //Reset Counter
       for (int i = 1; i < 100; i++) {
-        actionRecord[i].Time = 0;
-        actionRecord[i].S1Angle = 0;
-        actionRecord[i].S2Angle = 0;
-        actionRecord[i].S3Angle = 0;
-        actionRecord[i].S4Angle = 0;
+        EventArray[i].Time = 0;
+        EventArray[i].SBaseAngle = 0;
+        EventArray[i].SJ1Angle = 0;
+        EventArray[i].SJ2Angle = 0;
+        EventArray[i].SClawAngle = 0;
       }
-      Serial.print("Action Record cleared!");
-      //c = 0;
+      Serial.print("Event Record cleared!");
+      c = 0;
       
       // Signal arduino that every event has been sent and captured
     } if (c == 'k') {
       CapturedAll = 1;
-      //c = 0;
+      c = 0;
       Initialize();
 
-      // Receive incoming events over serial port
+      // Receive incoming events over serialport
     } if (c == '*') {
       Serial.println();
       Serial.print("caputred String is : ");
@@ -164,13 +155,13 @@ void loop() {
       index1 = readString.indexOf(';');
       TimeStr = readString.substring(0, index1);
       index2 = readString.indexOf(';', index1 + 1);
-      S1Str = readString.substring(index1 + 1, index2);
+      SBaseStr = readString.substring(index1 + 1, index2);
       index3 = readString.indexOf(';', index2 + 1);
-      S2Str = readString.substring(index2 + 1, index3);
+      SJ1Str = readString.substring(index2 + 1, index3);
       index4 = readString.indexOf(';', index3 + 1);
-      S3Str = readString.substring(index3 + 1, index4);
+      SJ2Str = readString.substring(index3 + 1, index4);
       index5 = readString.indexOf(';', index4 + 1);
-      S4Str = readString.substring(index4 + 1, index5);
+      SClawStr = readString.substring(index4 + 1, index5);
 
       //Converting HH:MM:ss time format to integer
       Time_index1 = TimeStr.indexOf(':');
@@ -185,25 +176,25 @@ void loop() {
       Time = p_Time + millis();
 
       //Converting the captured strings to integer
-      S1 = S1Str.toInt();
-      S2 = S2Str.toInt();
-      S3 = S3_SCALE + S3Str.toInt();
-      S4 = S4Str.toInt();
+      SBase = SBaseStr.toInt();
+      SJ1 = SJ1Str.toInt();
+      SJ2 = SJ2Str.toInt() + SJ2_SCALE;
+      SClaw = SClawStr.toInt();
 
-      //Storing the captured values into the action record
-      actionRecord[counter].Time = Time;
-      actionRecord[counter].S1Angle = (long)S1;
-      actionRecord[counter].S2Angle = (long)S2;
-      actionRecord[counter].S3Angle = (long)S3;
-      actionRecord[counter].S4Angle = (long)S4;
+      //Storing the captured values into the Event record
+      EventArray[counter].Time = Time;
+      EventArray[counter].SBaseAngle = (long)SBase;
+      EventArray[counter].SJ1Angle = (long)SJ1;
+      EventArray[counter].SJ2Angle = (long)SJ2;
+      EventArray[counter].SClawAngle = (long)SClaw;
 
       //Clear variables for new inputs
       readString = "";
       TimeStr = "";
-      S1Str = "";
-      S2Str = "";
-      S3Str = "";
-      S4Str = "";
+      SBaseStr = "";
+      SJ1Str = "";
+      SJ2Str = "";
+      SClawStr = "";
       counter += 1;
     } else {
       //Adds the character to the string
@@ -211,79 +202,58 @@ void loop() {
     }
 
     if (CapturedAll == 1) {
-      /*
-        for (int i = 0; i < 100;i++) {
-        unsigned long t = actionRecord[i].Time;
-        int s1 = actionRecord[i].S1Angle;
-        int s2 = actionRecord[i].S2Angle;
-        int s3 = actionRecord[i].S3Angle;
-        int s4 = actionRecord[i].S4Angle;
-
-        Serial.println("Event: "+String(i));
-        Serial.println("Time: "+String(t));
-        Serial.println("s1: "+String(s1));
-        Serial.println("s2: "+String(s2));
-        Serial.println("s3: "+String(s3));
-        }
-      */
       startMillis = millis();
+      
       //Checks each element of the record
       for (int i = 0; i < 100;) {
-        unsigned long t = actionRecord[i].Time;
+        unsigned long t = EventArray[i].Time;
 
         if (t > 0) {
-          String actionMsg = "Initiating action: " + String(i);
-          Serial.println(actionMsg);
+          String EventMsg = "Initiating Event: " + String(i);
+          Serial.println(EventMsg);
 
-          long s1 = actionRecord[i].S1Angle;
-          long s2 = actionRecord[i].S2Angle;
-          long s3 = actionRecord[i].S3Angle;
-          long s4 = actionRecord[i].S4Angle;
+          long SBase = EventArray[i].SBaseAngle;
+          long SJ1 = EventArray[i].SJ1Angle;
+          long SJ2 = EventArray[i].SJ2Angle;
+          long SClaw = EventArray[i].SClawAngle;
 
           // Since all the items are in chronological order -> check if time to act -> acts properly
           if (i < 99) {
             int next = i + 1;
-            int t_next = actionRecord[next].Time;
+            int t_next = EventArray[next].Time;
             if (t_next > 0) {
               unsigned long MOVING_TIME = t_next - t;
               unsigned long progress = millis() - startMillis;
 
-              long S1angle_now = Servo1.read();
-              long S1angle_next = actionRecord[next].S1Angle;
+              long SBaseangle_now = ServoBase.read();
+              long SBaseangle_next = EventArray[next].SBaseAngle;
 
-              long S2angle_now = Servo2.read();
-              long S2angle_next = actionRecord[next].S2Angle;
+              long SJ1angle_now = ServoJoint1.read();
+              long SJ1angle_next = EventArray[next].SJ1Angle;
 
-              long S3angle_now = Servo3.read();
-              long S3angle_next = actionRecord[next].S3Angle;
+              long SJ2angle_now = ServoJoint2.read();
+              long SJ2angle_next = EventArray[next].SJ2Angle;
 
               if (progress <= MOVING_TIME) {
-                long S1_angle = map(progress, 0, MOVING_TIME, S1angle_now, S1angle_next);
-                long S2_angle = map(progress, 0, MOVING_TIME, S2angle_now, S2angle_next);
-                long S3_angle = map(progress, 0, MOVING_TIME, S3angle_now, S3angle_next);
+                long SBase_angle = map(progress, 0, MOVING_TIME, SBaseangle_now, SBaseangle_next);
+                long SJ1_angle = map(progress, 0, MOVING_TIME, SJ1angle_now, SJ1angle_next);
+                long SJ2_angle = map(progress, 0, MOVING_TIME, SJ2angle_now, SJ2angle_next);
 
-                Serial.print("S1_angle ");
-                Serial.println(S1_angle);
-                Serial.print("S2_angle ");
-                Serial.println(S2_angle);
-                Serial.print("S3_angle ");
-                Serial.println(S3_angle);
+                //Debugging prints
+                Serial.print("SBase_angle ");
+                Serial.println(SBase_angle);
+                Serial.print("SJ1_angle ");
+                Serial.println(SJ1_angle);
+                Serial.print("SJ2_angle ");
+                Serial.println(SJ2_angle);
                 Serial.print("progress ");
                 Serial.println(progress);
                 Serial.print("MOVING_TIME ");
                 Serial.println(MOVING_TIME);
 
-                Servo1.write(S1_angle);
-                Servo2.write(S2_angle);
-                Servo3.write(S3_angle);
+                move_Servos(SBase_angle, SJ1_angle, SJ2_angle, SClaw);
               }
               if (millis() >= t_next) {
-                Servo1.write(S1angle_next);
-                Servo2.write(S2angle_next);
-                Servo3.write(S3angle_next);
-                Serial.println(S1angle_next);
-                Serial.println(S2angle_next);
-                Serial.println(S3angle_next);
                 Serial.println("Proceeding...");
                 startMillis = millis();
                 i++;
@@ -300,5 +270,14 @@ void loop() {
       Serial.println("Done!");
       CapturedAll = 0;
     }
+  } else {
+    Initialize();
   }
+}
+
+void move_Servos(long SBase, long SJ1, long SJ2, long SClaw){
+  ServoBase.write(SBase);
+  ServoJoint1.write(SJ1);
+  ServoJoint2.write(SJ2);
+  ServoClaw.write(SClaw);
 }
