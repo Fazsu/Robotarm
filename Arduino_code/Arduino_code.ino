@@ -15,9 +15,10 @@
  *    as Matlab                                *
  *    - parses the message and creates the     *                
  *    sequence list                            *     
- *    - Controlls the Servo motors             *
+ *    - Controlls the Servo motors acordingly  *
  ***********************************************   
  */
+ 
 //Servos:
 Servo ServoBase; //Base
 Servo ServoJoint1; //Left
@@ -29,7 +30,7 @@ unsigned long Time_Init = 1;
 long SBase_Init = 90;
 long SJ1_Init = 60;
 long SJ2_Init = 60;
-long SClaw_Init = 0;
+long SClaw_Init = 90;
 const long SJ2_SCALE = 180;
 
 //Pins:
@@ -115,7 +116,6 @@ void loop() {
   int Time_index3;
 
   if (Serial.available() > 0) { // Checks if there is data to read
-
     char c = Serial.read();
 
     /*  
@@ -126,7 +126,7 @@ void loop() {
         -----------------------------------------------------------------------
     */
 
-    // CLEAR Event array
+    // Clear EventArray
     if (c == 'c') {
       counter = 1; //Reset Counter
       for (int i = 1; i < 100; i++) {
@@ -216,7 +216,8 @@ void loop() {
           long SJ1 = EventArray[i].SJ1Angle;
           long SJ2 = EventArray[i].SJ2Angle;
           long SClaw = EventArray[i].SClawAngle;
-
+          
+          ServoClaw.write(SClaw);
           // Since all the items are in chronological order -> check if time to act -> acts properly
           if (i < 99) {
             int next = i + 1;
@@ -233,7 +234,7 @@ void loop() {
 
               long SJ2angle_now = ServoJoint2.read();
               long SJ2angle_next = EventArray[next].SJ2Angle;
-
+              
               if (progress <= MOVING_TIME) {
                 long SBase_angle = map(progress, 0, MOVING_TIME, SBaseangle_now, SBaseangle_next);
                 long SJ1_angle = map(progress, 0, MOVING_TIME, SJ1angle_now, SJ1angle_next);
@@ -246,12 +247,14 @@ void loop() {
                 Serial.println(SJ1_angle);
                 Serial.print("SJ2_angle ");
                 Serial.println(SJ2_angle);
+                Serial.print("Claw ");
+                Serial.println(SClaw);
                 Serial.print("progress ");
                 Serial.println(progress);
                 Serial.print("MOVING_TIME ");
                 Serial.println(MOVING_TIME);
-
-                move_Servos(SBase_angle, SJ1_angle, SJ2_angle, SClaw);
+                
+                move_Servos(SBase_angle, SJ1_angle, SJ2_angle);
               }
               if (millis() >= t_next) {
                 Serial.println("Proceeding...");
@@ -275,9 +278,8 @@ void loop() {
   }
 }
 
-void move_Servos(long SBase, long SJ1, long SJ2, long SClaw){
+void move_Servos(long SBase, long SJ1, long SJ2){
   ServoBase.write(SBase);
   ServoJoint1.write(SJ1);
   ServoJoint2.write(SJ2);
-  ServoClaw.write(SClaw);
 }
