@@ -11,4 +11,4 @@ Example of the project setup:
 ![image](https://github.com/Fazsu/Robotarm/assets/89864966/07df2a2b-c992-45c6-80bf-254f0a2a5df0)
 
 An example video of the system working (with finnish explanation) can be seen here: 
-![URL](https://www.youtube.com/watch?v=jDWK1_aLBoo)
+[Youtube link](https://www.youtube.com/watch?v=jDWK1_aLBoo)
